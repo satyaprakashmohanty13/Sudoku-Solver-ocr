@@ -1,59 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Sudoku Solver OCR</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Sudoku Solver</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2em; }
+    #loader { display: none; }
+    #error { color: red; margin-top: 1em; }
+    #resultImage { max-width: 90%; margin-top: 1em; display: none; }
+  </style>
 </head>
 <body>
-  <h1>Sudoku Solver</h1>
 
-  <form id="upload-form">
-    <input type="file" id="sudoku-image" accept="image/*" required>
-    <button type="submit">Solve!</button>
-  </form>
+  <h1>🧩 Sudoku Solver</h1>
+  <input type="file" id="imageInput" accept="image/*">
+  <br><br>
+  <button onclick="uploadImage()">Solve</button>
 
-  <div id="result" style="display:none;">
-    <h2>Solution</h2>
-    <img id="solved-img" alt="Solved Sudoku">
-  </div>
+  <div id="loader">⏳ Solving... Please wait</div>
+  <div id="error"></div>
+  <img id="resultImage" src="" alt="Solved Sudoku">
 
   <script>
-    const form = document.getElementById('upload-form');
-    const input = document.getElementById('sudoku-image');
-    const resultDiv = document.getElementById('result');
-    const solvedImg = document.getElementById('solved-img');
+    const BACKEND_URL = "https://sudoku-solver-backend-bxg0.onrender.com"; // Change if needed
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const file = input.files[0];
-      if (!file) return;
+    async function uploadImage() {
+      const input = document.getElementById("imageInput");
+      const loader = document.getElementById("loader");
+      const error = document.getElementById("error");
+      const resultImage = document.getElementById("resultImage");
+
+      error.textContent = "";
+      resultImage.style.display = "none";
+
+      if (!input.files[0]) {
+        error.textContent = "Please select an image first.";
+        return;
+      }
 
       const formData = new FormData();
-      formData.append('sudoku', file);
+      formData.append("image", input.files[0]);
 
-      // Change this URL to your Render service URL
-      const API_URL = 'https://sudoku-solver-backend-bxg0.onrender.com/solve';
+      loader.style.display = "block";
 
       try {
-        const resp = await fetch(API_URL, {
-          method: 'POST',
+        const response = await fetch(`${BACKEND_URL}/predict`, {
+          method: "POST",
           body: formData
         });
 
-        if (!resp.ok) {
-          const err = await resp.text();
-          throw new Error(err);
+        if (!response.ok) {
+          throw new Error(`Backend error: ${response.status} ${response.statusText}`);
         }
 
-        // we expect an image/jpeg blob
-        const blob = await resp.blob();
-        solvedImg.src = URL.createObjectURL(blob);
-        resultDiv.style.display = 'block';
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        resultImage.src = `data:image/png;base64,${data.solved_image}`;
+        resultImage.style.display = "block";
       } catch (err) {
-        alert('Error: ' + err.message);
+        console.error("Frontend error:", err);
+        error.textContent = "❌ Error: " + err.message;
+      } finally {
+        loader.style.display = "none";
       }
-    });
+    }
   </script>
+
 </body>
 </html>
