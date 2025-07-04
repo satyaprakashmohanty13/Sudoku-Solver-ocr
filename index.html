@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sudoku Solver OCR</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Sudoku Solver</h1>
+
+  <form id="upload-form">
+    <input type="file" id="sudoku-image" accept="image/*" required>
+    <button type="submit">Solve!</button>
+  </form>
+
+  <div id="result" style="display:none;">
+    <h2>Solution</h2>
+    <img id="solved-img" alt="Solved Sudoku">
+  </div>
+
+  <script>
+    const form = document.getElementById('upload-form');
+    const input = document.getElementById('sudoku-image');
+    const resultDiv = document.getElementById('result');
+    const solvedImg = document.getElementById('solved-img');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const file = input.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('sudoku', file);
+
+      // Change this URL to your Render service URL
+      const API_URL = 'https://your-render-service.onrender.com/solve';
+
+      try {
+        const resp = await fetch(API_URL, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!resp.ok) {
+          const err = await resp.text();
+          throw new Error(err);
+        }
+
+        // we expect an image/jpeg blob
+        const blob = await resp.blob();
+        solvedImg.src = URL.createObjectURL(blob);
+        resultDiv.style.display = 'block';
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
