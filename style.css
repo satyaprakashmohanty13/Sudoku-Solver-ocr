@@ -1,0 +1,14 @@
+body {
+  font-family: sans-serif;
+  text-align: center;
+  padding: 2rem;
+}
+
+input, button {
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
+#result {
+  margin-top: 2rem;
+}
