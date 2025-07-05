@@ -5,9 +5,9 @@
   <title>Sudoku Solver</title>
   <style>
     body { font-family: sans-serif; text-align: center; padding: 2em; }
-    #loader { display: none; }
+    #loader { display: none; margin-top: 1em; font-size: 1.2em; }
     #error { color: red; margin-top: 1em; }
-    #resultImage { max-width: 90%; margin-top: 1em; display: none; }
+    #resultImage { max-width: 90%; margin-top: 1em; display: none; border: 2px solid #444; }
   </style>
 </head>
 <body>
@@ -22,7 +22,7 @@
   <img id="resultImage" src="" alt="Solved Sudoku">
 
   <script>
-    const BACKEND_URL = "https://sudoku-solver-backend-bxg0.onrender.com"; // Change if needed
+    const BACKEND_URL = "https://sudoku-solver-backend-bxg0.onrender.com";
 
     async function uploadImage() {
       const input = document.getElementById("imageInput");
@@ -39,27 +39,25 @@
       }
 
       const formData = new FormData();
-      formData.append("image", input.files[0]);
+      formData.append("sudoku", input.files[0]); // ✅ Match backend key
 
       loader.style.display = "block";
 
       try {
-        const response = await fetch(`${BACKEND_URL}/predict`, {
+        const response = await fetch(`${BACKEND_URL}/solve`, {
           method: "POST",
           body: formData
         });
 
         if (!response.ok) {
-          throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || `Backend error: ${response.status}`);
         }
 
-        const data = await response.json();
+        const blob = await response.blob();
+        const imgUrl = URL.createObjectURL(blob);
 
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        resultImage.src = `data:image/png;base64,${data.solved_image}`;
+        resultImage.src = imgUrl;
         resultImage.style.display = "block";
       } catch (err) {
         console.error("Frontend error:", err);
