@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku solver OCR</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom styles to override or enhance Tailwind */
+        body {
+            font-family: 'Inter', sans-serif; /* Playful and modern font */
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); /* Vibrant gradient background */
+            background-attachment: fixed; /* Keep background fixed during scroll */
+            color: #e0e7ff; /* Light text color for contrast */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            padding: 20px; /* Add some padding around the content */
+        }
+
+        .sudoku-grid-container {
+            border-collapse: separate; /* Use separate borders for rounded corners on cells */
+            border-spacing: 4px; /* Space between cells */
+            background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent background for the grid */
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .sudoku-grid-container td {
+            border: none; /* Remove default td borders */
+            padding: 0; /* Remove default padding */
+            height: 2.8rem; /* Fixed height for cells */
+            width: 2.8rem; /* Fixed width for cells */
+            text-align: center;
+            vertical-align: middle;
+            background-color: rgba(255, 255, 255, 0.15); /* Cell background */
+            border-radius: 8px; /* Rounded corners for cells */
+            overflow: hidden; /* Ensure content stays within rounded corners */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
+        }
+
+        .sudoku-grid-container colgroup {
+            border: solid 3px #a78bfa; /* Border for 3x3 blocks */
+            border-radius: 12px; /* Rounded corners for colgroups */
+        }
+
+        .sudoku-grid-container tbody {
+            border: solid 3px #a78bfa; /* Border for 3x3 blocks */
+            border-radius: 12px; /* Rounded corners for tbody */
+        }
+
+        /* Specific styling for 3x3 blocks */
+        .sudoku-grid-container tr:nth-child(3n) td {
+            border-bottom: 2px solid #a78bfa; /* Thicker bottom border for block separation */
+        }
+        .sudoku-grid-container td:nth-child(3n) {
+            border-right: 2px solid #a78bfa; /* Thicker right border for block separation */
+        }
+        /* Remove extra borders on the last row/column */
+        .sudoku-grid-container tr:last-child td {
+            border-bottom: none;
+        }
+        .sudoku-grid-container td:last-child {
+            border-right: none;
+        }
+
+        .textbox {
+            height: 100%;
+            width: 100%;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem; /* Larger font size for numbers */
+            font-weight: 700; /* Bold numbers */
+            color: #e0e7ff; /* White text */
+            background-color: transparent; /* Transparent background */
+            border: none; /* No border */
+            outline: none; /* No outline on focus */
+            padding: 0;
+            -moz-appearance: textfield; /* Remove number input arrows in Firefox */
+        }
+        /* Remove number input arrows in Chrome, Safari, Edge */
+        .textbox::-webkit-outer-spin-button,
+        .textbox::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Styles for invalid input */
+        input:invalid {
+            border: 3px solid #f87171; /* Red border for invalid input */
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+        }
+
+        /* Floating Action Button (FAB) styles */
+        .fab-main-button {
+            @apply bg-gradient-to-r from-green-400 to-blue-500 text-white p-5 rounded-full shadow-lg text-3xl cursor-pointer
+                   hover:from-green-500 hover:to-blue-600 transition duration-300 ease-in-out transform hover:scale-110;
+        }
+
+        .share-options-container {
+            @apply flex flex-col items-center space-y-4 mb-4; /* Space between social icons, arranged in column */
+        }
+
+        .share-icon-button {
+            @apply w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl shadow-md
+                   transition duration-300 ease-in-out transform hover:scale-110;
+        }
+
+        /* Specific social media icon colors */
+        .share-icon-button.whatsapp { @apply bg-green-500 hover:bg-green-600; }
+        .share-icon-button.facebook { @apply bg-blue-600 hover:bg-blue-700; }
+        .share-icon-button.telegram { @apply bg-blue-400 hover:bg-blue-500; }
+
+    </style>
+</head>
+<body onload="clearForm()">
+    <div class="bg-gray-900 bg-opacity-70 p-8 md:p-12 rounded-2xl shadow-2xl max-w-lg w-full transform transition-all duration-300 hover:scale-102 border border-purple-500">
+        <!-- Social Media Icons Section -->
+        <div class="flex justify-center space-x-6 mb-6">
+            <a href="https://www.facebook.com/profile.php?id=61576823879176&mibextid=rS40aB7S9Ucbxw6v" target="_blank" aria-label="Facebook" class="text-gray-300 hover:text-blue-500 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-facebook-square text-3xl"></i>
+            </a>
+            <a href="https://mobile.x.com/SubashChan12922" target="_blank" aria-label="Twitter" class="text-gray-300 hover:text-blue-400 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-twitter-square text-3xl"></i>
+            </a>
+            <a href="https://www.instagram.com/mohanty.satyaprakash.22/" target="_blank" aria-label="Instagram" class="text-gray-300 hover:text-pink-500 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-instagram-square text-3xl"></i>
+            </a>
+            <a href="https://pin.it/1ZWNQjRrb" target="_blank" aria-label="Pinterest" class="text-gray-300 hover:text-red-600 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-pinterest-square text-3xl"></i>
+            </a>
+            <a href="https://www.youtube.com/@SubashChandraMohanty-ml2lw" target="_blank" aria-label="YouTube" class="text-gray-300 hover:text-red-700 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-youtube-square text-3xl"></i>
+            </a>
+            <a href="https://www.linkedin.com/" target="_blank" aria-label="LinkedIn" class="text-gray-300 hover:text-blue-700 transition-colors duration-300 transform hover:scale-110">
+                <i class="fab fa-linkedin text-3xl"></i>
+            </a>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-extrabold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-yellow-400 drop-shadow-lg flex items-center justify-center space-x-3">
+            <i class="fas fa-brain text-pink-300"></i>
+            <span>sudoku solver OCR</span>
+            <i class="fas fa-puzzle-piece text-yellow-300"></i>
+        </h1>
+
+        <p class="text-lg text-center mb-8 text-indigo-200">Upload a Sudoku image or enter it manually to solve!</p>
+
+        <div class="mb-8">
+            <h3 class="text-2xl font-bold mb-4 text-purple-300 flex items-center space-x-2">
+                <i class="fas fa-image"></i>
+                <span>Upload Sudoku Image</span>
+            </h3>
+            <form name="image" id="image" method="POST" action={{ url_for("readImage") }} enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <input type="file" class="block w-full text-sm text-gray-300
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-violet-50 file:text-violet-700
+                    hover:file:bg-violet-100 cursor-pointer" id="file" name="file" autocomplete="off">
+                <div class="flex space-x-4 w-full sm:w-auto">
+                    <button type="button" class="btn-primary" onclick="uploadCheck();">
+                        <i class="fas fa-upload mr-2"></i> Upload
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="clearForm();refreshPage();">
+                        <i class="fas fa-redo mr-2"></i> Clear
+                    </button>
+                </div>
+            </form>
+            <label class="text-yellow-300 text-sm italic mt-2 block">{{ image_message }}</label>
+        </div>
+
+        <div>
+            <h4 class="text-2xl font-bold mb-4 text-purple-300 flex items-center space-x-2">
+                <i class="fas fa-th-large"></i>
+                <span>Sudoku Grid</span>
+            </h4>
+            <form name="sudoku" id="sudoku" method="POST" action={{ url_for("solveSudoku") }}>
+                <table class="sudoku-grid-container">
+                    <colgroup>
+                        <col><col><col>
+                    </colgroup>
+                    <colgroup>
+                        <col><col><col>
+                    </colgroup>
+                    <colgroup>
+                        <col><col><col>
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid00" oninput="checkInput(this)" value="{{ data.grid00 if data.grid00 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid01" oninput="checkInput(this)" value="{{ data.grid01 if data.grid01 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid02" oninput="checkInput(this)" value="{{ data.grid02 if data.grid02 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid03" oninput="checkInput(this)" value="{{ data.grid03 if data.grid03 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid04" oninput="checkInput(this)" value="{{ data.grid04 if data.grid04 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid05" oninput="checkInput(this)" value="{{ data.grid05 if data.grid05 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid06" oninput="checkInput(this)" value="{{ data.grid06 if data.grid06 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid07" oninput="checkInput(this)" value="{{ data.grid07 if data.grid07 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid08" oninput="checkInput(this)" value="{{ data.grid08 if data.grid08 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid10" oninput="checkInput(this)" value="{{ data.grid10 if data.grid10 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid11" oninput="checkInput(this)" value="{{ data.grid11 if data.grid11 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid12" oninput="checkInput(this)" value="{{ data.grid12 if data.grid12 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid13" oninput="checkInput(this)" value="{{ data.grid13 if data.grid13 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid14" oninput="checkInput(this)" value="{{ data.grid14 if data.grid14 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid15" oninput="checkInput(this)" value="{{ data.grid15 if data.grid15 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid16" oninput="checkInput(this)" value="{{ data.grid16 if data.grid16 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid17" oninput="checkInput(this)" value="{{ data.grid17 if data.grid17 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid18" oninput="checkInput(this)" value="{{ data.grid18 if data.grid18 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid20" oninput="checkInput(this)" value="{{ data.grid20 if data.grid20 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid21" oninput="checkInput(this)" value="{{ data.grid21 if data.grid21 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid22" oninput="checkInput(this)" value="{{ data.grid22 if data.grid22 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid23" oninput="checkInput(this)" value="{{ data.grid23 if data.grid23 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid24" oninput="checkInput(this)" value="{{ data.grid24 if data.grid24 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid25" oninput="checkInput(this)" value="{{ data.grid25 if data.grid25 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid26" oninput="checkInput(this)" value="{{ data.grid26 if data.grid26 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid27" oninput="checkInput(this)" value="{{ data.grid27 if data.grid27 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid28" oninput="checkInput(this)" value="{{ data.grid28 if data.grid28 is not none else '' }}"></td>
+                        </tr>
+                    </tbody>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid30" oninput="checkInput(this)" value="{{ data.grid30 if data.grid30 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid31" oninput="checkInput(this)" value="{{ data.grid31 if data.grid31 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid32" oninput="checkInput(this)" value="{{ data.grid32 if data.grid32 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid33" oninput="checkInput(this)" value="{{ data.grid33 if data.grid33 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid34" oninput="checkInput(this)" value="{{ data.grid34 if data.grid34 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid35" oninput="checkInput(this)" value="{{ data.grid35 if data.grid35 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid36" oninput="checkInput(this)" value="{{ data.grid36 if data.grid36 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid37" oninput="checkInput(this)" value="{{ data.grid37 if data.grid37 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid38" oninput="checkInput(this)" value="{{ data.grid38 if data.grid38 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid40" oninput="checkInput(this)" value="{{ data.grid40 if data.grid40 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid41" oninput="checkInput(this)" value="{{ data.grid41 if data.grid41 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid42" oninput="checkInput(this)" value="{{ data.grid42 if data.grid42 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid43" oninput="checkInput(this)" value="{{ data.grid43 if data.grid43 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid44" oninput="checkInput(this)" value="{{ data.grid44 if data.grid44 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid45" oninput="checkInput(this)" value="{{ data.grid45 if data.grid45 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid46" oninput="checkInput(this)" value="{{ data.grid46 if data.grid46 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid47" oninput="checkInput(this)" value="{{ data.grid47 if data.grid47 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid48" oninput="checkInput(this)" value="{{ data.grid48 if data.grid48 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid50" oninput="checkInput(this)" value="{{ data.grid50 if data.grid50 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid51" oninput="checkInput(this)" value="{{ data.grid51 if data.grid51 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid52" oninput="checkInput(this)" value="{{ data.grid52 if data.grid52 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid53" oninput="checkInput(this)" value="{{ data.grid53 if data.grid53 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid54" oninput="checkInput(this)" value="{{ data.grid54 if data.grid54 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid55" oninput="checkInput(this)" value="{{ data.grid55 if data.grid55 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid56" oninput="checkInput(this)" value="{{ data.grid56 if data.grid56 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid57" oninput="checkInput(this)" value="{{ data.grid57 if data.grid57 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid58" oninput="checkInput(this)" value="{{ data.grid58 if data.grid58 is not none else '' }}"></td>
+                        </tr>
+                    </tbody>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid60" oninput="checkInput(this)" value="{{ data.grid60 if data.grid60 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid61" oninput="checkInput(this)" value="{{ data.grid61 if data.grid61 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid62" oninput="checkInput(this)" value="{{ data.grid62 if data.grid62 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid63" oninput="checkInput(this)" value="{{ data.grid63 if data.grid63 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid64" oninput="checkInput(this)" value="{{ data.grid64 if data.grid64 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid65" oninput="checkInput(this)" value="{{ data.grid65 if data.grid65 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid66" oninput="checkInput(this)" value="{{ data.grid66 if data.grid66 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid67" oninput="checkInput(this)" value="{{ data.grid67 if data.grid67 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid68" oninput="checkInput(this)" value="{{ data.grid68 if data.grid68 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid70" oninput="checkInput(this)" value="{{ data.grid70 if data.grid70 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid71" oninput="checkInput(this)" value="{{ data.grid71 if data.grid71 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid72" oninput="checkInput(this)" value="{{ data.grid72 if data.grid72 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid73" oninput="checkInput(this)" value="{{ data.grid73 if data.grid73 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid74" oninput="checkInput(this)" value="{{ data.grid74 if data.grid74 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid75" oninput="checkInput(this)" value="{{ data.grid75 if data.grid75 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid76" oninput="checkInput(this)" value="{{ data.grid76 if data.grid76 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid77" oninput="checkInput(this)" value="{{ data.grid77 if data.grid77 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid78" oninput="checkInput(this)" value="{{ data.grid78 if data.grid78 is not none else '' }}"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid80" oninput="checkInput(this)" value="{{ data.grid80 if data.grid80 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid81" oninput="checkInput(this)" value="{{ data.grid81 if data.grid81 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid82" oninput="checkInput(this)" value="{{ data.grid82 if data.grid82 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid83" oninput="checkInput(this)" value="{{ data.grid83 if data.grid83 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid84" oninput="checkInput(this)" value="{{ data.grid84 if data.grid84 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid85" oninput="checkInput(this)" value="{{ data.grid85 if data.grid85 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid86" oninput="checkInput(this)" value="{{ data.grid86 if data.grid86 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid87" oninput="checkInput(this)" value="{{ data.grid87 if data.grid87 is not none else '' }}"></td>
+                            <td><input type="text" class="textbox" maxlength="1" name="grid88" oninput="checkInput(this)" value="{{ data.grid88 if data.grid88 is not none else '' }}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <label class="text-yellow-300 text-sm italic mt-4 block">{{ sudoku_message }}</label>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-magic mr-2"></i> Solve
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="clearForm();refreshPage();">
+                        <i class="fas fa-eraser mr-2"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Custom button styles using Tailwind
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'violet': {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                    }
+                }
+            }
+        }
+
+        // JavaScript functions
+        function clearForm() {
+            document.getElementById("sudoku").reset();
+            // Clear all input fields in the Sudoku grid
+            const textboxes = document.querySelectorAll('.textbox');
+            textboxes.forEach(box => box.value = '');
+
+            // Reset image upload field
+            const fileInput = document.getElementById("file");
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+
+        function refreshPage() {
+            window.location.href = window.location.origin; // Reloads the page to its base URL
+        }
+
+        function uploadCheck() {
+            var nme = document.getElementById("file");
+            if (nme.value.length < 1) {
+                // Using a custom alert-like message for better UX
+                const messageBox = document.createElement('div');
+                messageBox.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 animate-bounce';
+                messageBox.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Please select a Sudoku image to upload.';
+                document.body.appendChild(messageBox);
+                setTimeout(() => {
+                    messageBox.remove();
+                }, 3000); // Remove message after 3 seconds
+                nme.focus();
+                return false;
+            } else {
+                document.getElementById("image").submit();
+            }
+        }
+
+        function checkInput(obj) {
+            // Allow only single digits (0-9)
+            obj.value = obj.value.replace(/[^1-9]/g, ''); // Only allow digits 1-9
+        }
+
+        // Add Tailwind button classes dynamically or define them in style tags
+        document.addEventListener('DOMContentLoaded', () => {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .btn-primary {
+                    @apply px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-700 transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 w-full sm:w-auto;
+                }
+                .btn-secondary {
+                    @apply px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:bg-gray-700 transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 w-full sm:w-auto;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // FAB Toggle Logic
+            const shareFab = document.getElementById('shareFab');
+            const shareOptions = document.getElementById('shareOptions');
+
+            shareFab.addEventListener('click', () => {
+                shareOptions.classList.toggle('hidden');
+            });
+        });
+    </script>
+    <!-- Floating Share Buttons - Vertical, No Background -->
+<style>
+  .floating-share {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .floating-share a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1f1f2e;
+    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    transition: transform 0.2s, background-color 0.3s;
+  }
+
+  .floating-share a:hover {
+    background-color: #333355;
+    transform: scale(1.1);
+  }
+
+  .floating-share img {
+    width: 20px;
+    height: 20px;
+  }
+</style>
+
+<div class="floating-share">
+  <!-- WhatsApp -->
+  <a href="https://api.whatsapp.com/send?text=Check%20this%20out!%20https://huggingface.co/spaces/satyaprakashmohanty13/sudoku-solver-from-image" target="_blank">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/whatsapp.png" alt="WhatsApp" />
+  </a>
+  <!-- Facebook -->
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://huggingface.co/spaces/satyaprakashmohanty13/sudoku-solver-from-image" target="_blank">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/facebook.png" alt="Facebook" />
+  </a>
+  <!-- Telegram -->
+  <a href="https://t.me/share/url?url=https://huggingface.co/spaces/satyaprakashmohanty13/sudoku-solver-from-image&text=Check%20this%20awesome%20website!" target="_blank">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/telegram-app.png" alt="Telegram" />
+  </a>
+  <!-- Instagram -->
+  <a href="https://www.instagram.com/" target="_blank">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png" alt="Instagram" />
+  </a>
+</div>
+</body>
+</html>
+
